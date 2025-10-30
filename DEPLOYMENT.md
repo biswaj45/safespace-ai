@@ -1,13 +1,129 @@
 # SafeSpace.AI - Deployment Guide
 
-## 🚀 Free Deployment on Render
+## 🚀 Free Deployment Options
 
-Follow these steps to deploy SafeSpace.AI for free on Render.com:
+Choose your preferred deployment platform:
+
+### 🎯 Option 1: Hugging Face Spaces (Recommended for AI Apps) ⭐
+- ✅ **100% Free** forever with GPU support
+- ✅ **Perfect for AI apps** with automatic model caching
+- ✅ **Beautiful Gradio interface** 
+- ✅ **Community visibility** and portfolio showcase
+- ✅ **Zero configuration** - just upload files
+
+### 🌐 Option 2: Render.com (Traditional Web Apps)
+- ✅ Free tier with 750 hours/month
+- ✅ Standard Flask deployment
+- ✅ Custom domain support (paid)
+
+---
+
+## 🤗 Hugging Face Spaces Deployment (Recommended)
 
 ### Prerequisites
 - Git repository (✅ Already created)
-- GitHub account 
-- Render.com account (free)
+- GitHub account: `biswaj45` (✅ Ready)
+- [Hugging Face account](https://huggingface.co) (free signup)
+
+### Step 1: Push to GitHub
+```bash
+# Navigate to your project
+cd "d:\Ai based Harrassment\safespace_ai"
+
+# Add your GitHub remote  
+git remote add origin https://github.com/biswaj45/safespace-ai.git
+
+# Push to GitHub
+git push -u origin master
+```
+
+### Step 2: Create Hugging Face Space
+1. **Visit**: [huggingface.co/new-space](https://huggingface.co/new-space)
+2. **Fill out the form**:
+   - **Owner**: Your HF username
+   - **Space name**: `safespace-ai`
+   - **License**: `MIT`
+   - **SDK**: `Gradio` ⭐
+   - **Visibility**: `Public` (recommended for portfolio)
+   - **Hardware**: `CPU basic` (free)
+
+3. **Initialize the Space** (creates empty repository)
+
+### Step 3: Prepare Files for HF Spaces
+```bash
+# Clone your new HF Space (replace YOUR_HF_USERNAME)
+git clone https://huggingface.co/spaces/YOUR_HF_USERNAME/safespace-ai hf-space
+cd hf-space
+
+# Copy the Gradio version of the app
+cp "../app_hf.py" "./app.py"
+cp "../requirements_hf.txt" "./requirements.txt"
+```
+
+### Step 4: Create HF Configuration
+Create `README.md` in the HF Space directory:
+```yaml
+---
+title: SafeSpace.AI - Workplace Harassment Detector
+emoji: 🛡️
+colorFrom: purple
+colorTo: blue
+sdk: gradio
+sdk_version: 4.0.0
+app_file: app.py
+pinned: false
+license: mit
+tags:
+  - text-classification
+  - workplace-safety
+  - harassment-detection
+  - toxicity-detection
+  - ai-safety
+---
+
+# 🛡️ SafeSpace.AI - Workplace Harassment Detector
+
+AI-powered workplace harassment detection using advanced transformers.
+
+## ✨ Features
+- 🤖 **Advanced AI**: Uses `unitary/toxic-bert` model
+- 📊 **Real-time Analysis**: Instant toxicity detection  
+- 📁 **File Support**: Upload .txt and .csv files
+- 💾 **Export Results**: Download detailed CSV reports
+- 🎨 **Modern UI**: Beautiful Gradio interface
+
+## 🚀 How to Use
+1. **Enter text** directly or **upload a file**
+2. **Click Analyze** to detect toxic content
+3. **Review results** with detailed recommendations
+4. **Export reports** for HR documentation
+
+## 🎯 Perfect For
+- HR departments monitoring workplace communications
+- Team managers assessing communication health
+- Compliance officers conducting safety audits
+
+Built with ❤️ using Hugging Face Transformers + Gradio
+```
+
+### Step 5: Deploy to HF Spaces
+```bash
+# Add and commit all files
+git add .
+git commit -m "Deploy SafeSpace.AI to Hugging Face Spaces"
+
+# Push to deploy
+git push
+```
+
+### Step 6: Access Your Live App! 🎉
+- **Your app URL**: `https://huggingface.co/spaces/YOUR_USERNAME/safespace-ai`
+- **Build time**: 3-5 minutes
+- **First model load**: ~30 seconds
+
+---
+
+## 🌐 Alternative: Render.com Deployment
 
 ### Step-by-Step Deployment Instructions
 
