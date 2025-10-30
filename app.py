@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, make_response, session
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from functools import wraps
 import os
 import pandas as pd
 import re
@@ -7,13 +9,58 @@ from io import StringIO
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'safespace_ai_secret_key_2024')  # For flash messages
+app.secret_key = os.environ.get('SECRET_KEY', 'safespace_ai_secret_key_2024')
+
+# Configure Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'info'
 
 # Configure for production
 if os.environ.get('FLASK_ENV') == 'production':
     app.config['DEBUG'] = False
 else:
     app.config['DEBUG'] = True
+
+# User class for Flask-Login
+class User(UserMixin):
+    def __init__(self, id, email, password, role):
+        self.id = id
+        self.email = email
+        self.password = password
+        self.role = role
+    
+    def is_admin(self):
+        return self.role == 'admin'
+
+# Sample users (in production, this would be a database)
+users_db = {
+    'admin@example.com': User('1', 'admin@example.com', 'admin123', 'admin'),
+    'user@example.com': User('2', 'user@example.com', 'user123', 'user'),
+    'manager@example.com': User('3', 'manager@example.com', 'manager123', 'user'),
+    'hr@example.com': User('4', 'hr@example.com', 'hr123', 'admin')
+}
+
+@login_manager.user_loader
+def load_user(user_id):
+    for user in users_db.values():
+        if user.id == user_id:
+            return user
+    return None
+
+# Role-based access decorator
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('login'))
+        if not current_user.is_admin():
+            flash('Access denied. Admin privileges required.', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # For now, use a simple keyword-based approach as fallback
 # We'll replace this with the real model once dependencies are resolved
@@ -110,11 +157,64 @@ def classify_message_toxicity(message):
     result["method"] = "keyword_based"
     return result
 
+# Authentication Routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        
+        user = users_db.get(email)
+        if user and user.password == password:
+            login_user(user)
+            flash(f'Welcome back, {user.role.title()}!', 'success')
+            
+            # Redirect to admin dashboard if admin, otherwise home
+            next_page = request.args.get('next')
+            if next_page:
+                return redirect(next_page)
+            elif user.is_admin():
+                return redirect(url_for('admin_dashboard'))
+            else:
+                return redirect(url_for('index'))
+        else:
+            flash('Invalid email or password.', 'error')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('You have been logged out successfully.', 'info')
+    return redirect(url_for('login'))
+
 @app.route('/')
 def home():
-    return render_template('index.html')
+    # Redirect to appropriate page based on auth status
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    return redirect(url_for('login'))
+
+@app.route('/dashboard')
+@login_required
+def index():
+    return render_template('index.html', user=current_user)
+
+@app.route('/admin/dashboard')
+@admin_required
+def admin_dashboard():
+    # Sample admin data (will be enhanced in later steps)
+    stats = {
+        'total_messages': 150,
+        'toxic_messages': 23,
+        'toxicity_rate': 15.3,
+        'total_users': 4
+    }
+    return render_template('admin_dashboard.html', stats=stats, user=current_user)
 
 @app.route('/analyze', methods=['POST'])
+@login_required
 def analyze():
     messages = []
     
