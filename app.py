@@ -1,5 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, make_response, session
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, make_response, session, g
 from functools import wraps
 import os
 import pandas as pd
@@ -11,12 +10,11 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'safespace_ai_secret_key_2024')
 
-# Configure Flask-Login
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
-login_manager.login_message = 'Please log in to access this page.'
-login_manager.login_message_category = 'info'
+# Session configuration
+app.config['SESSION_COOKIE_SECURE'] = False  # Allow HTTP in development
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
 
 # Configure for production
 if os.environ.get('FLASK_ENV') == 'production':
@@ -24,8 +22,8 @@ if os.environ.get('FLASK_ENV') == 'production':
 else:
     app.config['DEBUG'] = True
 
-# User class for Flask-Login
-class User(UserMixin):
+# User class (simplified without Flask-Login)
+class User:
     def __init__(self, id, email, password, role):
         self.id = id
         self.email = email
@@ -43,22 +41,46 @@ users_db = {
     'hr@example.com': User('4', 'hr@example.com', 'hr123', 'admin')
 }
 
-@login_manager.user_loader
-def load_user(user_id):
-    for user in users_db.values():
-        if user.id == user_id:
-            return user
+# Get current user from session
+def get_current_user():
+    user_id = session.get('user_id')
+    if user_id:
+        for user in users_db.values():
+            if user.id == user_id:
+                return user
     return None
 
-# Role-based access decorator
+# Before request handler to set current user
+@app.before_request
+def load_user():
+    g.user = get_current_user()
+
+# Authentication decorators
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not g.user:
+            flash('Please log in to access this page.', 'info')
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
+
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated:
+        print(f"� Admin check - User in session: {g.user.email if g.user else 'None'}")
+        
+        if not g.user:
+            print("❌ No user in session, redirecting to login")
+            flash('Please log in to access this page.', 'info')
             return redirect(url_for('login'))
-        if not current_user.is_admin():
+        
+        if not g.user.is_admin():
+            print(f"❌ User {g.user.email} is not admin (role: {g.user.role})")
             flash('Access denied. Admin privileges required.', 'error')
             return redirect(url_for('index'))
+        
+        print(f"✅ Admin access granted for {g.user.email}")
         return f(*args, **kwargs)
     return decorated_function
 
@@ -97,21 +119,30 @@ def classify_message_toxicity_simple(message):
             "keywords_found": 0
         }
 
-# Try to load the real model, fall back to simple method if it fails
-print("🔄 Attempting to load toxicity detection model...")
-try:
-    from transformers import pipeline
-    toxicity_classifier = pipeline(
-        "text-classification", 
-        model="unitary/toxic-bert",
-        return_all_scores=True
-    )
-    print("✅ Advanced toxicity detection model loaded successfully!")
-    USE_ADVANCED_MODEL = True
-except Exception as e:
-    print(f"⚠️  Could not load advanced model: {str(e)}")
-    print("🔄 Using simple keyword-based detection as fallback...")
-    toxicity_classifier = None
+# Model loading configuration - Start fast for testing
+MODEL_ENABLED = os.environ.get('ENABLE_AI_MODEL', 'false').lower() == 'true'
+toxicity_classifier = None
+USE_ADVANCED_MODEL = False
+
+print("🚀 Starting SafeSpace.AI...")
+if MODEL_ENABLED:
+    print("🔄 AI model enabled - attempting to load...")
+    try:
+        from transformers import pipeline
+        toxicity_classifier = pipeline(
+            "text-classification", 
+            model="unitary/toxic-bert",
+            return_all_scores=True
+        )
+        print("✅ Advanced toxicity detection model loaded successfully!")
+        USE_ADVANCED_MODEL = True
+    except Exception as e:
+        print(f"⚠️  Could not load advanced model: {str(e)}")
+        print("🔄 Using simple keyword-based detection as fallback...")
+        USE_ADVANCED_MODEL = False
+else:
+    print("⚡ Quick start mode - using keyword-based detection only")
+    print("💡 Set environment variable ENABLE_AI_MODEL=true to use AI model")
     USE_ADVANCED_MODEL = False
 
 def classify_message_toxicity(message):
@@ -161,23 +192,37 @@ def classify_message_toxicity(message):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '').strip()
+        
+        print(f"🔐 Login attempt: {email}")
         
         user = users_db.get(email)
         if user and user.password == password:
-            login_user(user)
+            print(f"✅ Valid credentials for {email} (role: {user.role})")
+            
+            # Set session data
+            session['user_id'] = user.id
+            session['user_email'] = user.email
+            session['user_role'] = user.role
+            session.permanent = True
+            
+            print(f"🔑 User logged in - Session set for ID: {user.id}")
             flash(f'Welcome back, {user.role.title()}!', 'success')
             
             # Redirect to admin dashboard if admin, otherwise home
             next_page = request.args.get('next')
             if next_page:
+                print(f"➡️ Redirecting to next page: {next_page}")
                 return redirect(next_page)
             elif user.is_admin():
+                print("➡️ Redirecting admin to dashboard")
                 return redirect(url_for('admin_dashboard'))
             else:
+                print("➡️ Redirecting user to index")
                 return redirect(url_for('index'))
         else:
+            print(f"❌ Invalid credentials for {email}")
             flash('Invalid email or password.', 'error')
     
     return render_template('login.html')
@@ -185,21 +230,23 @@ def login():
 @app.route('/logout')
 @login_required
 def logout():
-    logout_user()
-    flash('You have been logged out successfully.', 'info')
+    user_email = session.get('user_email', 'Unknown')
+    session.clear()
+    flash(f'You have been logged out successfully.', 'info')
+    print(f"🚪 User {user_email} logged out")
     return redirect(url_for('login'))
 
 @app.route('/')
 def home():
     # Redirect to appropriate page based on auth status
-    if current_user.is_authenticated:
+    if g.user:
         return redirect(url_for('index'))
     return redirect(url_for('login'))
 
 @app.route('/dashboard')
 @login_required
 def index():
-    return render_template('index.html', user=current_user)
+    return render_template('index.html', user=g.user)
 
 @app.route('/admin/dashboard')
 @admin_required
@@ -211,7 +258,7 @@ def admin_dashboard():
         'toxicity_rate': 15.3,
         'total_users': 4
     }
-    return render_template('admin_dashboard.html', stats=stats, user=current_user)
+    return render_template('admin_dashboard.html', stats=stats, user=g.user)
 
 @app.route('/analyze', methods=['POST'])
 @login_required
