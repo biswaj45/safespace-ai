@@ -19,6 +19,13 @@ except ImportError:
 AI_AVAILABLE = False
 print("🚀 Running in lightweight mode - Groq API only")
 
+# Simple user database (in production, use a proper database)
+USERS = {
+    'admin': {'password': 'admin123', 'role': 'admin'},
+    'user': {'password': 'user123', 'role': 'user'},
+    'demo': {'password': 'demo', 'role': 'user'}
+}
+
 # Configuration for explanation caching
 EXPLANATION_CACHE = {}
 EXPLANATION_CACHE_FILE = 'explanation_cache.json'
@@ -50,6 +57,26 @@ ANALYSIS_RESULTS = []
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
+
+# Authentication helpers
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        if session.get('user_role') != 'admin':
+            flash('Access denied. Admin privileges required.', 'error')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # API Configuration
 GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
@@ -397,6 +424,70 @@ def save_rewrite_cache():
             json.dump(REWRITE_CACHE, f, indent=2)
     except Exception as e:
         print(f"⚠️ Could not save rewrite cache: {e}")
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        if username in USERS and USERS[username]['password'] == password:
+            session['user_id'] = username
+            session['user_role'] = USERS[username]['role']
+            flash(f'Welcome back, {username}!', 'success')
+            
+            # Redirect admin to dashboard, users to main page
+            if USERS[username]['role'] == 'admin':
+                return redirect(url_for('admin_dashboard'))
+            else:
+                return redirect(url_for('index'))
+        else:
+            flash('Invalid username or password', 'error')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('You have been logged out', 'info')
+    return redirect(url_for('login'))
+
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    """Admin analytics dashboard"""
+    # Generate sample analytics data
+    from datetime import datetime, timedelta
+    import random
+    
+    # Sample data for charts
+    daily_stats = []
+    for i in range(7):
+        date = datetime.now() - timedelta(days=6-i)
+        daily_stats.append({
+            'date': date.strftime('%Y-%m-%d'),
+            'total_messages': random.randint(50, 200),
+            'toxic_messages': random.randint(5, 40),
+            'safe_messages': random.randint(45, 160)
+        })
+    
+    analytics_data = {
+        'total_users': 156,
+        'total_messages_analyzed': 2847,
+        'toxic_messages_detected': 342,
+        'safe_messages': 2505,
+        'toxicity_rate': 12.0,
+        'daily_stats': daily_stats,
+        'top_toxic_patterns': [
+            {'pattern': 'Personal Attacks', 'count': 89},
+            {'pattern': 'Profanity', 'count': 67},
+            {'pattern': 'Threats', 'count': 45},
+            {'pattern': 'Discriminatory Language', 'count': 32},
+            {'pattern': 'Cyberbullying', 'count': 28}
+        ]
+    }
+    
+    return render_template('admin_dashboard.html', data=analytics_data)
 
 @app.route('/')
 def index():
