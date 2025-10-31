@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeSpace.AI - HR Complaint Generated</title>
+    
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .success-header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 20px 20px;
+        }
+        
+        .email-preview {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+        }
+        
+        .email-header {
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .email-metadata {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .email-body {
+            white-space: pre-line;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .action-buttons {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+        }
+        
+        .btn-copy {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 25px;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-copy:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 123, 255, 0.3);
+            color: white;
+        }
+        
+        .btn-export {
+            background: linear-gradient(45deg, #6f42c1, #5a2d91);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 25px;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-export:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(111, 66, 193, 0.3);
+            color: white;
+        }
+        
+        .btn-new {
+            background: linear-gradient(45deg, #28a745, #1e7e34);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 25px;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-new:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+            color: white;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: #667eea !important;
+        }
+        
+        .alert-success {
+            border-left: 4px solid #28a745;
+            border-radius: 8px;
+        }
+        
+        .metadata-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metadata-label {
+            font-weight: bold;
+            color: #6c757d;
+        }
+        
+        .copy-feedback {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+        
+        @media print {
+            .navbar, .action-buttons, .success-header {
+                display: none !important;
+            }
+            
+            .email-preview {
+                box-shadow: none;
+                border: 1px solid #000;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="bi bi-shield-check"></i> SafeSpace.AI
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i> {{ user.email }} ({{ user.role.title() }})
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('index') }}"><i class="bi bi-house me-2"></i>Home</a></li>
+                        {% if user.is_admin() %}
+                        <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}"><i class="bi bi-graph-up me-2"></i>Admin Dashboard</a></li>
+                        {% endif %}
+                        <li><a class="dropdown-item" href="{{ url_for('hr_complaint_form') }}"><i class="bi bi-envelope-exclamation me-2"></i>HR Complaint</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Success Header -->
+    <div class="success-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="display-5 fw-bold mb-0">
+                        <i class="bi bi-check-circle me-3"></i>HR Complaint Generated Successfully
+                    </h1>
+                    <p class="lead mb-0 opacity-75">Your professional HR complaint email is ready</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="text-light">
+                        <i class="bi bi-calendar"></i> {{ current_date }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Success Alert -->
+        <div class="alert alert-success d-flex align-items-center" role="alert">
+            <i class="bi bi-check-circle-fill me-3" style="font-size: 1.5rem;"></i>
+            <div>
+                <h5 class="alert-heading mb-1">Email Generated Successfully!</h5>
+                <p class="mb-0">Your HR complaint has been professionally formatted and is ready to send. Review the content below and use the action buttons to copy, export, or print.</p>
+            </div>
+        </div>
+
+        <!-- Email Preview -->
+        <div class="email-preview">
+            <div class="email-header">
+                <h2 class="h4 mb-3"><i class="bi bi-envelope me-2"></i>Email Preview</h2>
+                
+                <!-- Email Metadata -->
+                <div class="email-metadata">
+                    <div class="metadata-row">
+                        <span class="metadata-label">Subject:</span>
+                        <span>{{ email_data.subject }}</span>
+                    </div>
+                    {% if email_data.recipients %}
+                    <div class="metadata-row">
+                        <span class="metadata-label">To:</span>
+                        <span>{{ email_data.recipients|join(', ') }}</span>
+                    </div>
+                    {% endif %}
+                    {% if email_data.cc %}
+                    <div class="metadata-row">
+                        <span class="metadata-label">CC:</span>
+                        <span>{{ email_data.cc|join(', ') }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="metadata-row">
+                        <span class="metadata-label">Priority:</span>
+                        <span class="badge bg-{{ 'danger' if email_data.template == 'urgent' else 'secondary' }}">
+                            {{ 'High' if email_data.template == 'urgent' else 'Normal' }}
+                        </span>
+                    </div>
+                    {% if email_data.confidential %}
+                    <div class="metadata-row">
+                        <span class="metadata-label">Confidentiality:</span>
+                        <span class="badge bg-warning text-dark">
+                            <i class="bi bi-lock"></i> Confidential
+                        </span>
+                    </div>
+                    {% endif %}
+                    <div class="metadata-row">
+                        <span class="metadata-label">Generated:</span>
+                        <span>{{ current_datetime }}</span>
+                    </div>
+                    <div class="metadata-row">
+                        <span class="metadata-label">Case ID:</span>
+                        <span class="badge bg-info">{{ complaint_id }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Email Body -->
+            <div class="email-body" id="email-content">{{ email_data.body }}</div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <div class="row">
+                <div class="col-md-8">
+                    <h4 class="mb-3"><i class="bi bi-gear me-2"></i>Actions</h4>
+                    <div class="d-flex flex-wrap gap-3">
+                        <button class="btn btn-copy" onclick="copyToClipboard()">
+                            <i class="bi bi-clipboard me-2"></i>Copy Email Content
+                        </button>
+                        
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-export dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="bi bi-download me-2"></i>Export
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('export_hr_complaint', format='txt', id=complaint_id) }}">
+                                    <i class="bi bi-file-text me-2"></i>Text File (.txt)
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('export_hr_complaint', format='pdf', id=complaint_id) }}">
+                                    <i class="bi bi-file-pdf me-2"></i>PDF Document (.pdf)
+                                </a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('export_hr_complaint', format='docx', id=complaint_id) }}">
+                                    <i class="bi bi-file-word me-2"></i>Word Document (.docx)
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="javascript:window.print()">
+                                    <i class="bi bi-printer me-2"></i>Print
+                                </a></li>
+                            </ul>
+                        </div>
+                        
+                        <a href="{{ url_for('hr_complaint_form') }}" class="btn btn-new">
+                            <i class="bi bi-plus-circle me-2"></i>New Complaint
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <h5 class="text-muted">Next Steps</h5>
+                    <div class="small text-muted">
+                        <div class="mb-2">
+                            <i class="bi bi-1-circle me-2"></i>Review the email content carefully
+                        </div>
+                        <div class="mb-2">
+                            <i class="bi bi-2-circle me-2"></i>Copy to your email client or export
+                        </div>
+                        <div class="mb-2">
+                            <i class="bi bi-3-circle me-2"></i>Attach any supporting evidence
+                        </div>
+                        <div class="mb-2">
+                            <i class="bi bi-4-circle me-2"></i>Send to appropriate recipients
+                        </div>
+                        <div>
+                            <i class="bi bi-5-circle me-2"></i>Keep a copy for your records
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Incident Summary -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Incident Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless">
+                            <tr>
+                                <td class="fw-bold text-muted">Incident Type:</td>
+                                <td>{{ form_data.incident_type }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Date & Time:</td>
+                                <td>{{ form_data.incident_date }}{% if form_data.incident_time %} at {{ form_data.incident_time }}{% endif %}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Location:</td>
+                                <td>{{ form_data.location }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">Template Used:</td>
+                                <td>
+                                    <span class="badge bg-primary">{{ form_data.email_template.title() }}</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="bg-light p-3 rounded">
+                            <h6 class="fw-bold mb-2">Important Reminders:</h6>
+                            <ul class="small mb-0">
+                                <li>This email serves as official documentation</li>
+                                <li>Keep copies of all related communications</li>
+                                <li>Document any follow-up conversations</li>
+                                <li>Contact Employee Assistance if needed</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Copy Feedback Toast -->
+    <div class="copy-feedback"></div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function copyToClipboard() {
+            const emailContent = document.getElementById('email-content').textContent;
+            const subject = "{{ email_data.subject }}";
+            
+            // Create the full email content
+            const fullContent = `Subject: ${subject}\n\n${emailContent}`;
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(fullContent).then(function() {
+                showCopyFeedback('Email content copied to clipboard!', 'success');
+            }, function(err) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = fullContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    showCopyFeedback('Email content copied to clipboard!', 'success');
+                } catch (err) {
+                    showCopyFeedback('Failed to copy content', 'danger');
+                }
+                
+                document.body.removeChild(textArea);
+            });
+        }
+        
+        function showCopyFeedback(message, type) {
+            const feedbackDiv = document.querySelector('.copy-feedback');
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type} alert-dismissible fade show`;
+            toast.innerHTML = `
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            feedbackDiv.appendChild(toast);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 3000);
+        }
+        
+        // Auto-hide alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert:not(.copy-feedback .alert)');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        const bsAlert = new bootstrap.Alert(alert);
+                        bsAlert.close();
+                    }
+                }, 5000);
+            });
+        });
+    </script>
+</body>
+</html>

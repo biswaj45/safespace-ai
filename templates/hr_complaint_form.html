@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeSpace.AI - HR Complaint Generator</title>
+    
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .hr-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 20px 20px;
+        }
+        
+        .form-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            background: white;
+            margin-bottom: 2rem;
+        }
+        
+        .form-section {
+            border-left: 4px solid #dc3545;
+            padding-left: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .template-preview {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .recipient-checkbox {
+            margin-bottom: 0.5rem;
+        }
+        
+        .confidential-warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: #667eea !important;
+        }
+        
+        .btn-generate {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: bold;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3);
+            color: white;
+        }
+        
+        .required-field {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="bi bi-shield-check"></i> SafeSpace.AI
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i> {{ user.email }} ({{ user.role.title() }})
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('index') }}"><i class="bi bi-house me-2"></i>Home</a></li>
+                        {% if user.is_admin() %}
+                        <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}"><i class="bi bi-graph-up me-2"></i>Admin Dashboard</a></li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HR Header -->
+    <div class="hr-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="display-5 fw-bold mb-0">
+                        <i class="bi bi-envelope-exclamation me-3"></i>HR Complaint Generator
+                    </h1>
+                    <p class="lead mb-0 opacity-75">Professional incident documentation and email generation</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="text-light">
+                        <i class="bi bi-shield-lock"></i> Secure & Confidential
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Important Notice -->
+        <div class="confidential-warning">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle text-warning me-3" style="font-size: 2rem;"></i>
+                <div>
+                    <h5 class="mb-1">Important Notice</h5>
+                    <p class="mb-0">This tool generates professional HR complaint emails based on the information you provide. All data is handled securely and confidentially. Please ensure all information is accurate before generating your complaint.</p>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('generate_hr_complaint') }}">
+            <!-- Incident Information -->
+            <div class="form-card card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0"><i class="bi bi-exclamation-circle me-2"></i>Incident Information</h4>
+                </div>
+                <div class="card-body">
+                    <div class="form-section">
+                        <h5>Basic Details <span class="required-field">*</span></h5>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="incident_type" class="form-label">Type of Incident <span class="required-field">*</span></label>
+                                <select class="form-select" id="incident_type" name="incident_type" required>
+                                    <option value="">Select incident type...</option>
+                                    <option value="Verbal Harassment">Verbal Harassment</option>
+                                    <option value="Physical Harassment">Physical Harassment</option>
+                                    <option value="Sexual Harassment">Sexual Harassment</option>
+                                    <option value="Discrimination">Discrimination</option>
+                                    <option value="Bullying">Bullying</option>
+                                    <option value="Retaliation">Retaliation</option>
+                                    <option value="Hostile Work Environment">Hostile Work Environment</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="incident_date" class="form-label">Date <span class="required-field">*</span></label>
+                                <input type="date" class="form-control" id="incident_date" name="incident_date" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="incident_time" class="form-label">Time</label>
+                                <input type="time" class="form-control" id="incident_time" name="incident_time">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="location" class="form-label">Location <span class="required-field">*</span></label>
+                            <input type="text" class="form-control" id="location" name="location" 
+                                   placeholder="e.g., Conference Room B, Office Floor 3, Virtual Meeting" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h5>People Involved</h5>
+                        
+                        <div class="mb-3">
+                            <label for="involved_parties" class="form-label">Involved Parties <span class="required-field">*</span></label>
+                            <textarea class="form-control" id="involved_parties" name="involved_parties" rows="3" 
+                                      placeholder="List the names and roles of people involved in the incident..." required></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="witnesses" class="form-label">Witnesses</label>
+                            <textarea class="form-control" id="witnesses" name="witnesses" rows="2" 
+                                      placeholder="List any witnesses to the incident..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Incident Description -->
+            <div class="form-card card">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0"><i class="bi bi-file-text me-2"></i>Incident Description</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Detailed Description <span class="required-field">*</span></label>
+                        <textarea class="form-control" id="description" name="description" rows="5" 
+                                  placeholder="Provide a detailed, factual description of what happened. Include specific quotes, actions, and context..." required></textarea>
+                        <div class="form-text">Be as specific as possible. Include dates, times, exact words used, and actions taken.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="impact" class="form-label">Impact on You/Work Environment</label>
+                        <textarea class="form-control" id="impact" name="impact" rows="3" 
+                                  placeholder="Describe how this incident has affected you, your work, or the work environment..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="evidence" class="form-label">Supporting Evidence</label>
+                        <textarea class="form-control" id="evidence" name="evidence" rows="3" 
+                                  placeholder="List any evidence you have (emails, messages, documents, photos, etc.)..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="previous_incidents" class="form-label">Previous Related Incidents</label>
+                        <textarea class="form-control" id="previous_incidents" name="previous_incidents" rows="3" 
+                                  placeholder="Describe any previous related incidents or patterns of behavior..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="desired_outcome" class="form-label">Requested Action/Desired Outcome</label>
+                        <textarea class="form-control" id="desired_outcome" name="desired_outcome" rows="3" 
+                                  placeholder="What specific actions or outcomes are you requesting?"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Configuration -->
+            <div class="form-card card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="bi bi-gear me-2"></i>Email Configuration</h4>
+                </div>
+                <div class="card-body">
+                    <div class="form-section">
+                        <h5>Email Template</h5>
+                        
+                        <div class="mb-3">
+                            <label for="email_template" class="form-label">Template Style</label>
+                            <select class="form-select" id="email_template" name="email_template" onchange="previewTemplate()">
+                                <option value="formal">Formal Business Letter</option>
+                                <option value="urgent">Urgent - Requires Immediate Attention</option>
+                                <option value="confidential">Confidential Report</option>
+                                <option value="follow_up">Follow-up to Previous Report</option>
+                            </select>
+                            <div class="form-text">Choose the tone and style appropriate for your situation.</div>
+                        </div>
+                        
+                        <div id="template-preview" class="template-preview" style="display: none;">
+                            <strong>Preview:</strong>
+                            <div id="preview-content"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h5>Recipients</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Standard Recipients</label>
+                                <div class="recipient-checkbox">
+                                    <input type="checkbox" class="form-check-input" id="hr_dept" name="recipients" value="hr@company.com">
+                                    <label class="form-check-label" for="hr_dept">HR Department</label>
+                                </div>
+                                <div class="recipient-checkbox">
+                                    <input type="checkbox" class="form-check-input" id="hr_director" name="recipients" value="hr-director@company.com">
+                                    <label class="form-check-label" for="hr_director">HR Director</label>
+                                </div>
+                                <div class="recipient-checkbox">
+                                    <input type="checkbox" class="form-check-input" id="supervisor" name="recipients" value="supervisor@company.com">
+                                    <label class="form-check-label" for="supervisor">Direct Supervisor</label>
+                                </div>
+                                <div class="recipient-checkbox">
+                                    <input type="checkbox" class="form-check-input" id="legal" name="recipients" value="legal@company.com">
+                                    <label class="form-check-label" for="legal">Legal Department</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="custom_recipient" class="form-label">Additional Recipients</label>
+                                <textarea class="form-control" id="custom_recipient" name="custom_recipient" rows="3" 
+                                          placeholder="Enter additional email addresses (one per line)..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h5>Privacy Settings</h5>
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="confidential" name="confidential">
+                            <label class="form-check-label" for="confidential">
+                                <strong>Mark as Confidential</strong> - Adds confidentiality notice to email
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generate Button -->
+            <div class="text-center mb-4">
+                <button type="submit" class="btn btn-generate btn-lg">
+                    <i class="bi bi-envelope-plus me-2"></i>Generate HR Complaint Email
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Set today's date as default
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('incident_date').value = today;
+        });
+        
+        // Template preview function
+        function previewTemplate() {
+            const templateType = document.getElementById('email_template').value;
+            const previewDiv = document.getElementById('template-preview');
+            const previewContent = document.getElementById('preview-content');
+            
+            // Show loading
+            previewDiv.style.display = 'block';
+            previewContent.innerHTML = '<i class="bi bi-hourglass-split"></i> Loading preview...';
+            
+            // Fetch preview
+            fetch(`/hr-complaint/preview/${templateType}`)
+                .then(response => response.json())
+                .then(data => {
+                    previewContent.innerHTML = `
+                        <strong>Subject:</strong> ${data.subject}<br><br>
+                        <strong>Opening:</strong><br>
+                        ${data.body.split('\n').slice(0, 4).join('<br>')}
+                        <br><em>... (rest of email will be generated with your details)</em>
+                    `;
+                })
+                .catch(error => {
+                    previewContent.innerHTML = '<span class="text-danger">Error loading preview</span>';
+                });
+        }
+        
+        // Form validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const requiredFields = document.querySelectorAll('[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Please fill in all required fields before generating the complaint.');
+            }
+        });
+    </script>
+</body>
+</html>
