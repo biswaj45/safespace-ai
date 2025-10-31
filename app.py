@@ -197,9 +197,21 @@ def classify_message_toxicity(text):
 def generate_empathy_rewrite(text):
     """Generate smart empathetic rewrite using Groq API"""
     
-    # Simple check: if message has constructive indicators, proceed with rewrite
-    constructive_indicators = ['i am', 'i\'m', 'doing good', 'doing well', 'thank you', 'thanks', 
-                              'hello', 'hi', 'hey', 'appreciate', 'help', 'but', 'however', 'while']
+    # Enhanced check: include more workplace conversation indicators for rewriting
+    constructive_indicators = [
+        # Personal expressions
+        'i am', 'i\'m', 'doing good', 'doing well', 'thank you', 'thanks', 
+        'hello', 'hi', 'hey', 'appreciate', 'help', 'please',
+        # Workplace context
+        'working', 'work', 'task', 'project', 'meeting', 'deadline', 'team',
+        'finish', 'complete', 'progress', 'update', 'status', 'report',
+        # Conversational connectors that suggest mixed content
+        'but', 'however', 'while', 'although', 'yet', 'still', 'anyway',
+        # Questions and collaborative language
+        'did you', 'can you', 'will you', 'let me', 'let\'s', 'we should',
+        # Constructive criticism indicators
+        'need to', 'should', 'could', 'might', 'maybe', 'perhaps'
+    ]
     
     text_lower = text.lower()
     has_constructive_content = any(indicator in text_lower for indicator in constructive_indicators)
@@ -371,5 +383,4 @@ def analyze_realtime():
 
 if __name__ == '__main__':
     print("🚀 Starting SafeSpace.AI (Groq-powered)...")
-    port = int(os.environ.get('PORT', 7860))  # Use 7860 for Hugging Face Spaces
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=True)
