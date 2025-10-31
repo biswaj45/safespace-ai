@@ -378,9 +378,68 @@ def analyze():
 
 @app.route('/api/analyze-realtime', methods=['POST'])
 def analyze_realtime():
-    """Real-time analysis endpoint for frontend compatibility"""
-    return analyze()
+    """Real-time analysis endpoint for frontend compatibility - returns JSON"""
+    try:
+        # Get the message from request
+        data = None
+        message = None
+        
+        if request.content_type == 'application/json':
+            data = request.get_json()
+        else:
+            data = request.form.to_dict()
+            if not data:
+                try:
+                    import json
+                    data = json.loads(request.get_data().decode('utf-8'))
+                except:
+                    pass
+        
+        if data:
+            message = data.get('message') or data.get('text') or data.get('text_input')
+        
+        if not message:
+            return jsonify({'error': 'No message provided'}), 400
+        
+        message = message.strip()
+        if not message:
+            return jsonify({'error': 'Empty message'}), 400
+        
+        print(f"🔍 Real-time analyzing: '{message}'")
+        
+        # Classify the message
+        result = classify_message_toxicity(message)
+        
+        # Prepare JSON response for real-time analysis
+        response = {
+            'is_toxic': result['is_toxic'],
+            'confidence': result['confidence'],
+            'score': result['confidence'],  # Frontend expects 'score'
+            'explanation': result['reason'],
+            'source': result['source'],
+            'status': 'toxic' if result['is_toxic'] else 'safe',
+            'label': 'toxic' if result['is_toxic'] else 'safe'
+        }
+        
+        # Generate rewrite if toxic
+        if result['is_toxic']:
+            rewrite = generate_empathy_rewrite(message)
+            if rewrite:
+                response['rewrite'] = rewrite
+                response['empathy_rewrite'] = rewrite
+                response['suggestion'] = rewrite
+        
+        print(f"📊 Real-time result: {'TOXIC' if result['is_toxic'] else 'SAFE'} ({result['confidence']:.1%}) via {result['source']}")
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        print(f"❌ Error in real-time analyze: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Analysis failed', 'details': str(e)}), 500
 
 if __name__ == '__main__':
     print("🚀 Starting SafeSpace.AI (Groq-powered)...")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))  # Use 5000 for local, 7860 for HF Spaces
+    app.run(host='0.0.0.0', port=port, debug=False)
