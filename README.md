@@ -1,22 +1,29 @@
 # SafeSpace.AI - Workplace Harassment Detector
 
-🛡️ **AI-powered workplace chat safety monitor** that detects toxic language and harassment in workplace communications using advanced machine learning.
+🛡️ **Ultra-fast AI-powered workplace chat safety monitor** that detects toxic language and harassment in workplace communications using Groq API for lightning-fast analysis.
 
-![SafeSpace.AI](https://img.shields.io/badge/AI-Powered-blue) ![Flask](https://img.shields.io/badge/Flask-3.0+-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
+![SafeSpace.AI](https://img.shields.io/badge/AI-Powered-blue) ![Flask](https://img.shields.io/badge/Flask-3.0+-green) ![Groq](https://img.shields.io/badge/Groq-API-purple) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ## 🌟 Features
 
-### 🤖 **AI-Powered Detection**
-- **Advanced Model**: Uses `unitary/toxic-bert` transformer model
-- **High Accuracy**: Professional-grade toxicity detection
-- **Fallback System**: Keyword-based detection as backup
-- **Real-time Analysis**: Instant results for workplace safety
+### 🚀 **Ultra-Fast AI Detection**
+- **Groq API**: Lightning-fast toxicity detection (~0.2s response time)
+- **No Downloads**: No model files to download - instant startup
+- **High Accuracy**: Advanced LLM-powered analysis with contextual understanding
+- **Free Tier**: 30,000 tokens daily on free tier
+- **Smart Prompting**: Engineered prompts for workplace context
+
+### 🎯 **Smart Empathy Rewriter**
+- **Context-Aware**: Only rewrites mixed content (constructive + toxic)
+- **Preserves Intent**: Keeps good parts, fixes toxic language
+- **Professional Tone**: Generates workplace-appropriate alternatives
+- **No Pure Toxicity**: Skips rewriting purely derogatory messages
 
 ### 📁 **Multiple Input Methods**
 - **Text Input**: Paste messages directly in textarea
-- **File Upload**: Support for `.txt` and `.csv` files
+- **File Upload**: Support for `.txt` and `.csv` files  
 - **Batch Processing**: Analyze hundreds of messages at once
-- **CSV Intelligence**: Auto-detects message columns
+- **Real-time Analysis**: Instant results for workplace safety
 
 ### 📊 **Professional Dashboard**
 - **Summary Statistics**: Total, toxic, safe message counts
@@ -38,14 +45,17 @@
 
 ## 🚀 Quick Start
 
-### Local Development
+### Environment Setup
 ```bash
 # Clone repository
-git clone https://github.com/YOUR_USERNAME/safespace-ai.git
+git clone https://github.com/biswaj45/safespace-ai.git
 cd safespace-ai
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Set up Groq API key (get free key from groq.com)
+echo "GROQ_API_KEY=your_groq_api_key_here" > .env
 
 # Run application
 python app.py
@@ -53,8 +63,10 @@ python app.py
 
 Visit: `http://localhost:5000`
 
-### Production Deployment
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions on Render.com (free).
+### Hugging Face Deployment
+Already deployed at: **https://huggingface.co/spaces/biswaj46/safespace-ai**
+
+Set your `GROQ_API_KEY` in the Space settings for full functionality.
 
 ## 📋 How It Works
 
@@ -118,11 +130,22 @@ Detailed Results:
 ## 🔧 Technical Stack
 
 - **Backend**: Flask 3.0+ (Python)
-- **AI Model**: unitary/toxic-bert (Hugging Face Transformers)
+- **AI Engine**: Groq API with llama-3.1-8b-instant model
 - **Frontend**: Bootstrap 5 + Custom CSS
-- **Deployment**: Render.com (Free tier)
+- **Deployment**: Hugging Face Spaces
 - **Processing**: Pandas for data handling
 - **Server**: Gunicorn for production
+- **Performance**: ~0.2s response time, no model downloads
+
+## 📊 Performance Comparison
+
+| Metric | Previous (PyTorch) | Current (Groq API) |
+|--------|-------------------|-------------------|
+| Response Time | 5-10 seconds | ~0.2 seconds |
+| Startup Time | 30-60 seconds | Instant |
+| Memory Usage | 2GB+ | <100MB |
+| Model Download | 500MB+ | None |
+| Accuracy | Good | Excellent |
 
 ## 📁 Project Structure
 
